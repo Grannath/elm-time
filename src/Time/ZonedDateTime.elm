@@ -62,6 +62,7 @@ surface of `ZonedDateTimes` is extremely limited.
 @docs toISO8601, fromISO8601
 -}
 
+import Combine exposing (..)
 import Time exposing (Time)
 import Time.Date exposing (Date, Weekday)
 import Time.DateTime as DateTime exposing (DateTime)
@@ -381,6 +382,16 @@ toISO8601 dateTime =
         ++ utcOffsetString dateTime
 
 
+{-| toIsoWithZone renders a ZonedDateTime in ISO8601 format, but appends the time zone name in brackets.
+-}
+toIsoWithZone : ZonedDateTime -> String
+toIsoWithZone dateTime =
+    toISO8601 dateTime
+        ++ "["
+        ++ TimeZone.name (timeZone dateTime)
+        ++ "]"
+
+
 {-| fromISO8601 parses an ISO8601-formatted string into a
 ZonedDateTime object, adjusting for its offset.
 -}
@@ -388,3 +399,36 @@ fromISO8601 : TimeZone -> String -> Result String ZonedDateTime
 fromISO8601 timeZone input =
     DateTime.fromISO8601 input
         |> Result.map (fromDateTime timeZone)
+
+
+fromIsoWithZone : String -> Result String ZonedDateTime
+fromIsoWithZone input =
+    let
+        parseZone =
+            Combine.string "["
+                *> while ((/=) ']')
+                <* Combine.string "]"
+                
+        zoned dateTime =
+            flip fromDateTime dateTime
+                <$> parseZone
+                
+        parseZonedDateTime =
+            DateTime.fromISO8601
+                <$> while ((/=) '[')
+                >>= zoned
+                <* Combine.end
+    in
+        if String.endsWith "z" input then
+            fromISO8601 TimeZones.universal input
+        else
+            case Combine.parse parseZonedDateTime input of
+                Ok (_, _, zdt) ->
+                    Ok zdt
+                
+                Err ( _, { position }, es ) ->
+                    let
+                        messages =
+                            String.join " or " es
+                    in
+                        Err ("Errors encountered at position " ++ toString position ++ ": " ++ messages)
