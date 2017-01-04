@@ -37,6 +37,8 @@ module Time.ZonedDateTime
         , utcOffsetString
         , toISO8601
         , fromISO8601
+        , toIsoWithZone
+        , fromIsoWithZone
         )
 
 {-| This module defines a time representation based on a Date, the
@@ -382,7 +384,8 @@ toISO8601 dateTime =
         ++ utcOffsetString dateTime
 
 
-{-| toIsoWithZone renders a ZonedDateTime in ISO8601 format, but appends the time zone name in brackets.
+{-| toIsoWithZone renders a ZonedDateTime in ISO8601 format,
+but appends the time zone name in brackets.
 -}
 toIsoWithZone : ZonedDateTime -> String
 toIsoWithZone dateTime =
@@ -401,6 +404,9 @@ fromISO8601 timeZone input =
         |> Result.map (fromDateTime timeZone)
 
 
+{-| fromIsoWithZone parses a string based on ISO8601, but
+additionally expects the time zone name in brackets at the end.
+-}
 fromIsoWithZone : String -> Result String ZonedDateTime
 fromIsoWithZone input =
     let
